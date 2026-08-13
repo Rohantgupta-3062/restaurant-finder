@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Veg Bangalore — a field guide by distance</title>
+<meta name="description" content="66 vegetarian restaurants in Bangalore, ranked by rating and sorted by how far they are from wherever you're standing.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F7F6F2; --panel:#FFFFFF; --ink:#15181B; --ink-2:#4B5359; --ink-3:#868E94;
+  --line:#E2E0D8; --line-2:#CFCCC1;
+  --pine:#0E5647; --pine-soft:#E4EFEA; --pine-line:#9CC3B6;
+  --turmeric:#C4880F; --turmeric-soft:#FBF0D8;
+  --kumkum:#A82238; --kumkum-soft:#FAE7EA;
+  --slate:#2E4A66; --slate-soft:#E7EDF3;
+  --r:10px;
+  --dsp:"Bricolage Grotesque",system-ui,sans-serif;
+  --bdy:"Instrument Sans",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--bdy);font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1060px;margin:0 auto;padding:0 20px}
+a{color:var(--pine)}
+button{font-family:inherit;font-size:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--slate);outline-offset:2px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* ---------- masthead ---------- */
+header.top{border-bottom:1px solid var(--line);background:var(--paper)}
+.mast{display:flex;flex-wrap:wrap;align-items:flex-end;gap:16px;padding:34px 0 22px}
+.mast h1{font-family:var(--dsp);font-weight:800;font-size:clamp(34px,6vw,58px);line-height:0.95;letter-spacing:-0.02em;margin:0}
+.mast h1 em{font-style:normal;color:var(--pine)}
+.mast p{margin:0;color:var(--ink-2);font-size:15px;max-width:34ch}
+.tally{margin-left:auto;font-family:var(--mono);font-size:12px;color:var(--ink-3);text-align:right;line-height:1.5}
+.tally b{display:block;font-family:var(--dsp);font-size:30px;font-weight:600;color:var(--ink);line-height:1}
+
+/* ---------- location bar ---------- */
+.locbar{position:sticky;top:0;z-index:30;background:rgba(247,246,242,.94);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.locrow{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:12px 0}
+.btn{border:1px solid var(--line-2);background:var(--panel);color:var(--ink);border-radius:var(--r);padding:9px 14px;font-size:14px;font-weight:500;display:inline-flex;align-items:center;gap:7px;transition:border-color .15s,background .15s}
+.btn:hover{border-color:var(--ink-3)}
+.btn.solid{background:var(--pine);border-color:var(--pine);color:#fff}
+.btn.solid:hover{background:#0b4739}
+.btn.ghost{background:transparent}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--turmeric);flex:none}
+.dot.live{background:var(--pine)}
+.origin{font-family:var(--mono);font-size:12.5px;color:var(--ink-2);display:flex;align-items:center;gap:8px}
+select,input[type=search]{font-family:var(--bdy);font-size:14px;padding:9px 11px;border:1px solid var(--line-2);border-radius:var(--r);background:var(--panel);color:var(--ink)}
+input[type=search]{min-width:170px}
+
+/* ---------- radar ---------- */
+.radarwrap{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:34px;align-items:center;padding:30px 0 8px}
+@media(max-width:760px){.radarwrap{grid-template-columns:1fr;gap:18px}}
+#radar{width:100%;height:auto;display:block;touch-action:manipulation}
+#radar .ring{fill:none;stroke:var(--line-2);stroke-width:1}
+#radar .ring.on{stroke:var(--pine);stroke-width:1.6}
+#radar .hit{fill:none;stroke:rgba(0,0,0,0);stroke-width:16;cursor:pointer}
+#radar .rlab{font-family:var(--mono);font-size:9.5px;fill:var(--ink-3)}
+#radar .pin{cursor:pointer;transition:r .12s}
+#radar .me{fill:var(--kumkum)}
+.legend{font-family:var(--mono);font-size:11.5px;color:var(--ink-3);display:flex;gap:14px;flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:0}
+.bands{display:grid;grid-template-columns:repeat(auto-fit,minmax(88px,1fr));gap:8px}
+.band{border:1px solid var(--line);background:var(--panel);border-radius:var(--r);padding:10px 12px;text-align:left}
+.band.on{border-color:var(--pine);background:var(--pine-soft)}
+.band .k{font-family:var(--mono);font-size:11px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.06em}
+.band.on .k{color:var(--pine)}
+.band .v{font-family:var(--dsp);font-size:26px;font-weight:600;line-height:1.1}
+.hint{font-size:13.5px;color:var(--ink-2);margin:14px 0 0}
+#peek{font-family:var(--mono);font-size:12px;color:var(--ink-2);min-height:18px;margin-top:8px}
+
+/* ---------- controls ---------- */
+.controls{border-top:1px solid var(--line);margin-top:26px;padding:16px 0;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line-2);background:transparent;border-radius:999px;padding:6px 13px;font-size:13.5px;color:var(--ink-2)}
+.chip.on{background:var(--ink);border-color:var(--ink);color:#fff}
+.toggle{display:inline-flex;align-items:center;gap:8px;font-size:14px;color:var(--ink-2);border:1px solid var(--line-2);background:var(--panel);border-radius:var(--r);padding:8px 12px}
+.toggle input{accent-color:var(--pine);width:15px;height:15px;margin:0}
+.spacer{flex:1 1 40px}
+
+/* ---------- list ---------- */
+.groupname{font-family:var(--dsp);font-size:13px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);border-bottom:1px solid var(--line);padding:22px 0 7px;margin:0 0 4px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;margin:8px 0;display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:14px;align-items:start}
+.card.mk-been{border-left:3px solid var(--slate)}
+.card.mk-want{border-left:3px solid var(--turmeric)}
+.card.mk-no{opacity:.5;border-left:3px solid var(--kumkum)}
+.rank{font-family:var(--mono);font-size:12px;color:var(--ink-3);padding-top:4px}
+.nm{font-family:var(--dsp);font-size:19px;font-weight:600;letter-spacing:-.01em;line-height:1.2;margin:0}
+.sub{font-size:13.5px;color:var(--ink-2);margin:3px 0 0}
+.tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+.tag{font-family:var(--mono);font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;padding:3px 8px;border-radius:5px;background:#F1EFE8;color:#5F5E5A}
+.tag.pine{background:var(--pine-soft);color:var(--pine)}
+.tag.tur{background:var(--turmeric-soft);color:#8A5F06}
+.tag.kum{background:var(--kumkum-soft);color:var(--kumkum)}
+.tag.sl{background:var(--slate-soft);color:var(--slate)}
+.right{text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:3px}
+.rate{font-family:var(--dsp);font-size:22px;font-weight:600;line-height:1}
+.rate.hi{color:var(--pine)}
+.rate.lo{color:var(--kumkum)}
+.cnt{font-family:var(--mono);font-size:11px;color:var(--ink-3)}
+.conf{width:52px;height:3px;background:var(--line);border-radius:2px;overflow:hidden}
+.conf span{display:block;height:100%;background:var(--pine)}
+.km{font-family:var(--mono);font-size:13px;color:var(--ink)}
+.eta{font-family:var(--mono);font-size:11px;color:var(--ink-3)}
+.acts{grid-column:2/-1;display:flex;flex-wrap:wrap;gap:6px;margin-top:11px}
+.act{border:1px solid var(--line-2);background:transparent;border-radius:999px;padding:5px 11px;font-size:12.5px;color:var(--ink-2)}
+.act.on{color:#fff;border-color:transparent}
+.act.been.on{background:var(--slate)}
+.act.want.on{background:var(--turmeric)}
+.act.no.on{background:var(--kumkum)}
+.act.map{margin-left:auto;color:var(--pine);border-color:var(--pine-line)}
+.empty{border:1px dashed var(--line-2);border-radius:var(--r);padding:26px;text-align:center;color:var(--ink-2);font-size:14.5px}
+.empty b{display:block;font-family:var(--dsp);font-size:18px;color:var(--ink);margin-bottom:5px}
+
+footer{border-top:1px solid var(--line);margin-top:44px;padding:22px 0 60px;font-size:13px;color:var(--ink-3)}
+footer p{margin:0 0 6px;max-width:70ch}
+.mini{border:none;background:none;color:var(--pine);text-decoration:underline;padding:0;font-size:13px}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+@media(max-width:560px){
+  .card{grid-template-columns:minmax(0,1fr) auto;gap:10px}
+  .rank{display:none}
+  .acts{grid-column:1/-1}
+  .tally{margin-left:0;text-align:left}
+}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap mast">
+    <div>
+      <h1>Veg <em>Bangalore</em></h1>
+      <p>Sixty-six pure-veg places, plotted by how far they are from wherever you're standing right now.</p>
+    </div>
+    <div class="tally"><b id="tCount">66</b>places on the map<br><span id="tAvg">avg 4.3★</span></div>
+  </div>
+</header>
+
+<div class="locbar">
+  <div class="wrap locrow">
+    <button class="btn solid" id="geo">Find places near me</button>
+    <button class="btn ghost" id="reset">Reset to Mathikere</button>
+    <select id="manual" aria-label="Pick a starting point"></select>
+    <span class="origin"><span class="dot" id="oDot"></span><span id="oText">measuring from Mathikere</span></span>
+  </div>
+</div>
+
+<main class="wrap">
+
+  <section class="radarwrap">
+    <div>
+      <svg id="radar" viewBox="0 0 320 320" role="img" aria-labelledby="radarTitle">
+        <title id="radarTitle">Map of restaurants by direction and distance from your location</title>
+      </svg>
+      <div class="legend">
+        <span><i style="background:var(--kumkum)"></i>you</span>
+        <span><i style="background:var(--pine)"></i>open now</span>
+        <span><i style="background:var(--line-2)"></i>closed</span>
+      </div>
+    </div>
+    <div>
+      <div class="bands" id="bands"></div>
+      <p class="hint">Tap a ring on the map or a number above to change the radius. Distances are road estimates, not straight lines.</p>
+      <div id="peek"></div>
+    </div>
+  </section>
+
+  <section class="controls">
+    <div class="chips" id="occ"></div>
+    <span class="spacer"></span>
+    <label class="toggle"><input type="checkbox" id="openNow">Open now</label>
+    <label class="toggle"><input type="checkbox" id="rush">Rush hour</label>
+    <label class="toggle"><input type="checkbox" id="hideNo" checked>Hide "never again"</label>
+    <label class="toggle"><input type="checkbox" id="cluster">Group by area</label>
+  </section>
+
+  <section class="controls" style="border-top:none;padding-top:0">
+    <input type="search" id="q" placeholder="Search a name or area" aria-label="Search">
+    <select id="sortBy" aria-label="Sort by">
+      <option value="dist">Nearest first</option>
+      <option value="rating">Highest rated</option>
+      <option value="value">Best rating per km</option>
+      <option value="pop">Most reviewed</option>
+      <option value="closing">Closing soonest</option>
+    </select>
+    <select id="minR" aria-label="Minimum rating">
+      <option value="0">Any rating</option>
+      <option value="4">4.0 and up</option>
+      <option value="4.2">4.2 and up</option>
+      <option value="4.4">4.4 and up</option>
+    </select>
+    <select id="minC" aria-label="Minimum reviews">
+      <option value="0">Any review count</option>
+      <option value="200">200+ reviews</option>
+      <option value="1000">1,000+ reviews</option>
+    </select>
+    <span class="spacer"></span>
+    <button class="btn" id="lucky">Pick one for tonight</button>
+    <button class="btn" id="share">Copy share link</button>
+  </section>
+
+  <div id="out"></div>
+</main>
+
+<footer class="wrap">
+  <p id="fnote">Ratings and hours are from Google, captured August 2026 — check before you drive. Distances are straight-line multiplied by 1.35, so treat them as a rough road estimate. Split-hours places (many close between lunch and dinner) are handled, but public holidays are not.</p>
+  <p>Your been-there marks are saved in this browser only. <button class="mini" id="wipe">Clear my marks</button></p>
+</footer>
+
+<script>
+/* ---------- data ----------
+   [0]name [1]area [2]rating [3]reviews [4]price [5]lat [6]lng
+   [7]kitchen [8]occasions [9]hours windows (decimal, >24 = after midnight)
+   [10]closed weekdays (0=Sun) [11]note
+*/
+var DATA=[
+["Aanandam Veg","Thippagondanahalli",4.3,1462,2,13.1597,77.3233,"Rajasthani dhaba",["family"],[[12,23]],[],"Highway dhaba, Jain options, plenty of parking"],
+["Kakal Kai Ruchi","Rajajinagar",4.4,4552,2,13.0009,77.5528,"South + North Indian",["breakfast","family","quick"],[[7,23]],[],"Open from 7am, so it covers breakfast too"],
+["The Kind Roastery","JP Nagar",4.4,2455,2,12.9106,77.5896,"Roastery cafe",["date","quick"],[[8,25]],[],"Laptop-free seating on weekends"],
+["Burma Burma","Indiranagar",4.5,9846,3,12.9705,77.6447,"Burmese",["date","family"],[[12,15.5],[18.5,22.5]],[],"No reservations — expect a roadside wait on weekends"],
+["Sante Spa Cuisine","Indiranagar",4.4,3266,3,12.9640,77.6387,"Healthy global",["date"],null,[],"Menu built around allergies and light cooking"],
+["Mahe Global Kitchen","Koramangala",4.4,639,2,12.9336,77.6218,"Global veg",["date","family"],null,[],"Two floors, outdoor seating, Jain options"],
+["Tuk Tuk Thai","Koramangala",4.4,1252,2,12.9334,77.6224,"Pan-Asian",["date","family"],[[12,23]],[],"Raw mango salad and the 3T noodles are the picks"],
+["Green Theory","Residency Road",4.1,5961,3,12.9683,77.6028,"Continental cafe",["date"],[[11,23]],[],"Lovely garden, mosquitoes at dusk, service can lag"],
+["Satvik Kitchen","Padmanabhanagar",4.3,2913,1,12.9181,77.5572,"Karnataka tiffin",["breakfast","quick"],[[6.5,21.5]],[],"Gojjavalakki and shavige bath are the signatures"],
+["Go Native","Kalyan Nagar",4.7,171,2,13.0250,77.6406,"Millet and native",["date","family"],[[11,22]],[],"Menu changes every six months; craft store upstairs"],
+["Quattro Ristorante","Residency Road",4.4,458,3,12.9688,77.6026,"Italian-Mexican",["date","family"],null,[],"Glass ceiling, guacamole made at the table"],
+["Food Springs","Jayanagar",4.4,3647,2,12.9262,77.5820,"Pan-Asian hotpot",["family","date"],[[12,15.5],[18,22.5]],[1],"Hot pot is weekdays only. Closed Mondays"],
+["Spettacolare","Indiranagar",4.3,2086,3,12.9796,77.6368,"Italian",["date"],[[12,23]],[],"Order the panzerotti over the pasta"],
+["Over Coffee","Lavelle Road",4.3,1163,3,12.9750,77.5995,"European cafe",["breakfast","date"],[[10,22.5]],[],"Strong breakfast menu near Cubbon Park"],
+["Simpli Namdhari's","Jayanagar",4.3,6981,2,12.9395,77.5854,"Organic deli",["quick","breakfast"],[[6.5,22]],[],"Grocery store with a live-kitchen diner attached"],
+["MH12 Pav Bhaji","Sanjay Nagar",4.5,1228,2,13.0280,77.5792,"Pav bhaji",["quick","late","family"],[[12,24]],[],"Rooftop with north Bengaluru views. All Amul butter"],
+["White Garden","Kalyan Nagar",4.6,5535,3,13.0238,77.6432,"Artisan veg",["date","family"],[[12,16],[19,23]],[],"Reserve, and turn up on time — they release late tables"],
+["Anand Purani Dilli","Konanakunte",3.9,43,2,12.8824,77.5466,"Chaat and sweets",["quick"],null,[],"Above Anand Sweets. Recent hygiene complaints"],
+["PHURR","Jayanagar",4.7,19100,3,12.9327,77.5830,"Progressive Indian",["date","family"],[[12,16],[19,23]],[],"The strongest name on the list. Book ahead"],
+["Rameshwaram Cafe","Indiranagar",4.3,20921,1,12.9817,77.6409,"South Indian",["breakfast","quick","late"],[[5,25]],[],"Open 5am to 1am. Queues at both counters"],
+["Hermitage India","Malleshwaram",4.0,1132,3,13.0086,77.5633,"Neo-Indian",["date"],[[12,23]],[],"Old bungalow. Ambience outruns the food"],
+["Sicilia Point","Rajajinagar",4.5,1067,2,12.9858,77.5519,"Italian",["date","family"],[[11,23]],[],"Pure-veg Italian in a converted house. Tiny — go early"],
+["Sagar","Rajajinagar",4.1,23763,2,12.9967,77.5543,"Pav bhaji and fafda",["late","quick"],[[12.5,24.5]],[],"Famous rather than great. Jalebi fafda is the reason to go"],
+["Crepito","Rajajinagar",4.3,4002,2,12.9974,77.5449,"Pizza and thali",["family","quick"],null,[],"Unlimited thali. Cleanliness complaints lately"],
+["The Higher Taste","Rajajinagar",4.3,2359,3,13.0093,77.5513,"Sattvik buffet",["family"],[[12,15],[19,22.5]],[],"Inside ISKCON. Say you're dining and parking is free"],
+["Sakura","Rajajinagar",4.0,530,2,12.9958,77.5549,"Japanese veg",["date","family"],[[12,23]],[],"Cherry-blossom theming, Jain options available"],
+["Sanman","Seshadripuram",4.3,6153,2,12.9865,77.5746,"Multi-cuisine veg",["family","breakfast"],[[7.5,22]],[],"Decades old and reliable. Check the papad price"],
+["The Kota Taste","Rajajinagar",4.3,326,1,12.9849,77.5537,"Rajasthani",["quick","family"],[[9.5,24]],[],"Unlimited Punjabi thali, parathas, hot jalebi"],
+["Sattvam","Sadashivanagar",4.3,12533,3,13.0057,77.5806,"Sattvik fine dine",["family","date"],[[12,15.5],[19,23]],[],"No onion, no garlic. A la carte now beats the buffet"],
+["Bombay Curry House","Manyata, Hebbal",4.3,853,2,13.0419,77.6197,"North Indian",["family"],[[8,23]],[],"Inside the tech park. Valet parking, easy for groups"],
+["Socialize Yelahanka",'Yelahanka New Town',4.4,782,3,13.0926,77.5822,"Multi-cuisine",["breakfast","date","family"],[[12,23]],[],"Weekend breakfast board is the thing to order"],
+["Socialize","Basaveshwaranagar",4.2,1174,2,12.9925,77.5391,"Neighbourhood cafe",["date","quick"],[[9,22.5]],[],"Small portions for the price, good ambience"],
+["Ambrosia","RR Nagar",4.2,7775,3,12.9042,77.5097,"Italian and bar",["family","date"],[[11,23.5]],[],"Big screens, serves liquor, reasonable bills"],
+["Raju Bawarchi","RR Nagar",3.9,179,2,12.9166,77.5136,"Self-service fast food",["quick"],null,[],"New, token-and-counter system, no car parking"],
+["The Nachiyar Cafe","RR Nagar",4.2,3917,1,12.9157,77.5133,"South Indian",["breakfast","quick"],[[7,22.5]],[],"Ample parking, several seating sections"],
+["The Madras Cafe","RR Nagar",3.6,1071,1,12.9305,77.5152,"South Indian",["breakfast","quick"],[[7,22.5]],[],"No-frills. Hygiene comes up repeatedly in reviews"],
+["The London Curry House","Seshadripuram",4.2,12159,2,12.9855,77.5793,"Multi-cuisine",["family","date"],[[12,23]],[],"Basement fine-dine, no alcohol, no parking"],
+["SpiceKlub","Jayanagar",3.9,456,3,12.9396,77.5854,"Molecular Indian",["date"],[[12,15.5],[18.5,23.5]],[],"Novelty plating, priced for occasions"],
+["Element3","Indiranagar",4.4,1395,2,12.9790,77.6438,"Sattvik and Jain",["family"],[[11,23]],[],"No onion or garlic, still full-flavoured"],
+["Yogisthaan","Indiranagar",4.2,3785,2,12.9810,77.6384,"Yoga cafe",["quick"],[[8,21.75]],[],"Good for working quietly. Service is slow"],
+["Muru Muru","Indiranagar",4.3,402,2,12.9822,77.6379,"Cafe",["date","quick"],[[11.5,23.5]],[],"Tucked away, limited seating, excellent matcha"],
+["Sri Udupi Park","Indiranagar",4.1,16165,1,12.9736,77.6409,"South Indian",["breakfast","quick"],[[6.5,22.5]],[],"Self-service, fast, packed at peak"],
+["The Filter Coffee","Indiranagar",4.3,4830,2,12.9715,77.6471,"South Indian meals",["breakfast","family"],[[7,22.5]],[],"Served on banana leaf with refills of chutney"],
+["Street Storyss","Indiranagar",4.2,3498,3,12.9703,77.6359,"Street fusion",["date","family"],[[12,23]],[],"Six or seven tables upstairs — book ahead"],
+["Delhi Highway","Indiranagar",4.0,8591,2,12.9702,77.6395,"North Indian thali",["family"],[[12,16],[19,23]],[],"Heritage-mansion decor, average food, no mobile signal"],
+["Bhartiya Jalpan","Indiranagar",4.0,15031,2,12.9687,77.6416,"Thali and sweets",["family","quick"],[[8.5,22.5]],[],"Go for the thali and the sweet counter"],
+["Garden By Su","Jayanagar",4.5,1967,3,12.9167,77.5836,"Global veg and vegan",["date","family"],[[12,23]],[],"The old Sante Spa space. Most vegan options in the city"],
+["Venezia","Jayanagar",4.2,1550,2,12.9275,77.5772,"Italian",["date"],null,[],"Quiet, greenery, cheap for what it is"],
+["Ragoos","Jayanagar",4.0,1180,2,12.9338,77.5740,"Pizza and pasta",["family","quick"],[[11,22.5]],[],"Garlic bread is the standout, pizza is inconsistent"],
+["Patios","Jayanagar",3.9,2431,3,12.9245,77.5839,"Progressive veg",["date"],null,[],"Walking distance from Jayanagar metro"],
+["Ishtaa","Jayanagar",4.2,4611,2,12.9289,77.5814,"Fine dine veg",["family"],null,[],"Large hall, coconut trees inside, good for groups"],
+["Eshanya","Jayanagar",4.0,6776,2,12.9230,77.5932,"Buffet",["family"],[[12,15.5],[19,22.5]],[],"Cheap buffet, but fewer items than advertised"],
+["Cable Car","JP Nagar",4.1,8116,2,12.9169,77.5855,"Buffet",["family","breakfast"],[[7.5,11.5],[12,22.5]],[],"Seasonal mango buffets are the draw"],
+["Subz","Jayanagar",4.2,8785,2,12.9330,77.5850,"Buffet",["family"],[[12,15.5],[19,23]],[],"Live chaat and dosa counters inside the buffet price"],
+["Gaia","JP Nagar",4.3,1330,4,12.9061,77.5865,"Global veg",["date"],[[11.5,15.5],[18.5,23.5]],[],"The most designed room on this list. Service is average"],
+["Achyutam Veg","JP Nagar",4.6,59,1,12.9066,77.5905,"South Indian",["breakfast","quick"],null,[],"Opposite Rameshwaram and far less crowded"],
+["Kake Di Hatti","Rajajinagar",4.2,2654,3,13.0031,77.5496,"Punjabi naan",["family"],[[11,23]],[],"Go for the naan varieties, skip the starters"],
+["Kailash Parbat","Sadashivanagar",4.5,4892,2,13.0075,77.5796,"Sindhi chaat",["family","quick"],[[11,22.75]],[],"Park near Sankey Tank. Check the bill for added tip"],
+["Khandani Rajdhani","Indiranagar",4.2,5204,2,12.9638,77.6418,"Rajasthani thali",["family"],[[12,16],[19,23]],[],"Unlimited thali, ghee with everything"],
+["Haldiram's","Orion Mall",4.3,694,2,13.0116,77.5551,"Chaat and sweets",["quick","family"],[[11,23]],[],"Mall food court. Convenient rather than special"],
+["Little Italy","Indiranagar",4.0,6459,3,12.9773,77.6407,"Italian",["family","date"],[[11,23]],[],"Consistent chain. Sauces better than the pizza"],
+["1947","Koramangala",4.8,1412,3,12.9334,77.6224,"North Indian",["date","family"],[[11.5,23]],[],"Highest rated on the list. Weekend nights are packed"],
+["Kapoor's Cafe","Rajajinagar",4.1,3583,2,12.9995,77.5525,"Punjabi dhaba",["family","quick"],[[11,22.67]],[],"Heavy on ghee — tell them in advance if you'd rather not"],
+["Aubree","Sanjay Nagar",4.4,479,2,13.0282,77.5733,"Patisserie cafe",["late","date","quick"],[[8,25]],[],"Open till 1am. The late-night dessert option"],
+["Brahmin Tiffins","Jayanagar",4.3,6974,1,12.9233,77.5861,"Tiffin and filter kaapi",["breakfast","quick"],[[6.5,21]],[],"No sambar, exceptional chutney, cheap"],
+["Gwalia","Koramangala",4.1,120,2,12.9338,77.6158,"Gujarati sweets",["quick"],null,[],"Thirty years old. Live chaat and jalebi"]
+];
+var SPOTS=[
+["Mathikere",13.0333,77.5667],["Malleshwaram",13.0055,77.5692],["Rajajinagar",12.9982,77.5525],
+["Sadashivanagar",13.0060,77.5800],["Sanjay Nagar",13.0280,77.5790],["Yelahanka",13.1007,77.5963],
+["Hebbal",13.0358,77.5970],["Indiranagar",12.9784,77.6408],["Koramangala",12.9352,77.6245],
+["Jayanagar",12.9308,77.5838],["JP Nagar",12.9100,77.5850],["Whitefield",12.9698,77.7500],
+["Electronic City",12.8452,77.6602],["MG Road",12.9747,77.6094],["RR Nagar",12.9200,77.5150],
+["Basaveshwaranagar",12.9925,77.5391],["Kalyan Nagar",13.0240,77.6420],["Banashankari",12.9250,77.5460]
+];
+
+/* ---------- state ---------- */
+var HOME={name:"Mathikere",lat:13.0333,lng:77.5667};
+var BANDS=[[1,"1 km"],[3,"3 km"],[5,"5 km"],[10,"10 km"],[15,"15 km"],[999,"Any"]];
+var OCC=[["all","Everything"],["breakfast","Breakfast"],["quick","Quick bite"],["date","Date night"],["family","Family group"],["late","Late night"]];
+var S={origin:{name:HOME.name,lat:HOME.lat,lng:HOME.lng},band:2,occ:"all",openNow:false,rush:false,
+       hideNo:true,cluster:false,q:"",sort:"dist",minR:0,minC:0};
+var MARKS={};
+try{MARKS=JSON.parse(localStorage.getItem("vegblr.marks")||"{}");}catch(e){MARKS={};}
+function saveMarks(){try{localStorage.setItem("vegblr.marks",JSON.stringify(MARKS));}catch(e){}}
+function key(r){return r[0]+"|"+r[1];}
+
+/* ---------- geometry ---------- */
+function haversine(a,b,c,d){var R=6371,p=Math.PI/180,t=(c-a)*p,n=(d-b)*p,
+  x=Math.sin(t/2)*Math.sin(t/2)+Math.cos(a*p)*Math.cos(c*p)*Math.sin(n/2)*Math.sin(n/2);
+  return 2*R*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));}
+function bearing(a,b,c,d){var p=Math.PI/180;return Math.atan2((d-b)*p*Math.cos(((a+c)/2)*p),(c-a)*p);}
+function measure(){DATA.forEach(function(r){
+  r.km=haversine(S.origin.lat,S.origin.lng,r[5],r[6])*1.35;
+  r.brg=bearing(S.origin.lat,S.origin.lng,r[5],r[6]);
+  r.eta=Math.max(3,Math.round(r.km/(S.rush?15:26)*60));});}
+
+/* ---------- hours ---------- */
+function status(r){
+  var w=r[9];if(!w)return{state:"unknown"};
+  var n=new Date(),day=n.getDay(),h=n.getHours()+n.getMinutes()/60;
+  if((r[10]||[]).indexOf(day)>-1)return{state:"closed",why:"closed today"};
+  for(var i=0;i<w.length;i++){
+    var s=w[i][0],e=w[i][1];
+    if(h>=s&&h<e)return{state:"open",mins:Math.round((e-h)*60)};
+    if(e>24&&h+24>=s&&h+24<e)return{state:"open",mins:Math.round((e-h-24)*60)};
+  }
+  var next=null;
+  for(var j=0;j<w.length;j++){if(w[j][0]>h&&(next===null||w[j][0]<next))next=w[j][0];}
+  return{state:"closed",why:next!==null?"opens "+clock(next):"closed for the day"};}
+function clock(x){var hh=Math.floor(x)%24,mm=Math.round((x-Math.floor(x))*60);
+  var ap=hh>=12?"pm":"am",h12=hh%12===0?12:hh%12;return h12+(mm?":"+(mm<10?"0":"")+mm:"")+ap;}
+
+/* ---------- filtering ---------- */
+function visible(){
+  var lim=BANDS[S.band][0],q=S.q.trim().toLowerCase();
+  return DATA.filter(function(r){
+    if(r.km>lim)return false;
+    if(r[2]<S.minR||r[3]<S.minC)return false;
+    if(S.occ!=="all"&&r[8].indexOf(S.occ)<0)return false;
+    if(S.openNow&&status(r).state!=="open")return false;
+    if(S.hideNo&&MARKS[key(r)]==="no")return false;
+    if(q&&(r[0]+" "+r[1]+" "+r[7]).toLowerCase().indexOf(q)<0)return false;
+    return true;});}
+function sortRows(a){
+  var f={dist:function(x,y){return x.km-y.km;},
+    rating:function(x,y){return y[2]-x[2]||y[3]-x[3];},
+    pop:function(x,y){return y[3]-x[3];},
+    value:function(x,y){return (y[2]-y.km*0.045)-(x[2]-x.km*0.045);},
+    closing:function(x,y){var m=function(r){var s=status(r);return s.state==="open"?s.mins:99999;};return m(x)-m(y);}};
+  return a.slice().sort(f[S.sort]);}
+
+/* ---------- radar ---------- */
+var MAXKM=30,RPX=132;
+function scale(d){return RPX*Math.log1p(Math.min(d,MAXKM))/Math.log1p(MAXKM);}
+function drawRadar(){
+  var cx=160,cy=160,rows=visible(),svg=['<title id="radarTitle">Restaurants by direction and distance from your location</title>'];
+  BANDS.forEach(function(b,i){
+    if(b[0]>MAXKM)return;var rr=scale(b[0]);
+    svg.push('<circle class="ring'+(i===S.band?' on':'')+'" cx="'+cx+'" cy="'+cy+'" r="'+rr.toFixed(1)+'"/>');
+    svg.push('<circle class="hit" cx="'+cx+'" cy="'+cy+'" r="'+rr.toFixed(1)+'" data-band="'+i+'"><title>Show within '+b[1]+'</title></circle>');
+    svg.push('<text class="rlab" x="'+(cx+3)+'" y="'+(cy-rr+11).toFixed(1)+'">'+b[1]+'</text>');});
+  rows.forEach(function(r){
+    var rr=scale(r.km),x=cx+rr*Math.sin(r.brg),y=cy-rr*Math.cos(r.brg),st=status(r).state;
+    var col=st==="open"?"var(--pine)":(st==="unknown"?"var(--turmeric)":"var(--line-2)");
+    var sz=r[2]>=4.5?5:(r[2]>=4.2?4:3.2);
+    svg.push('<circle class="pin" cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="'+sz+'" fill="'+col+'" data-nm="'+esc(r[0])+'" data-in="'+esc(r[1])+'" data-km="'+r.km.toFixed(1)+'"><title>'+esc(r[0])+' — '+r.km.toFixed(1)+' km</title></circle>');});
+  svg.push('<circle class="me" cx="'+cx+'" cy="'+cy+'" r="4.5"/>');
+  svg.push('<circle cx="'+cx+'" cy="'+cy+'" r="10" fill="none" stroke="var(--kumkum)" stroke-width="1" opacity=".45"/>');
+  var el=document.getElementById("radar");el.innerHTML=svg.join("");
+  Array.prototype.forEach.call(el.querySelectorAll(".hit"),function(c){
+    c.addEventListener("click",function(){S.band=+c.getAttribute("data-band");render();});});
+  Array.prototype.forEach.call(el.querySelectorAll(".pin"),function(c){
+    var show=function(){document.getElementById("peek").textContent=
+      c.getAttribute("data-nm")+" · "+c.getAttribute("data-in")+" · "+c.getAttribute("data-km")+" km";};
+    c.addEventListener("mouseenter",show);c.addEventListener("click",show);});}
+function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;");}
+
+/* ---------- chrome ---------- */
+function drawBands(){
+  var h="";
+  BANDS.forEach(function(b,i){
+    var save=S.band;S.band=i;var n=visible().length;S.band=save;
+    h+='<button class="band'+(i===S.band?" on":"")+'" data-i="'+i+'"><span class="k">within '+b[1]+'</span><span class="v">'+n+'</span></button>';});
+  var el=document.getElementById("bands");el.innerHTML=h;
+  Array.prototype.forEach.call(el.querySelectorAll(".band"),function(b){
+    b.addEventListener("click",function(){S.band=+b.getAttribute("data-i");render();});});}
+function drawOcc(){
+  var h="";OCC.forEach(function(o){h+='<button class="chip'+(S.occ===o[0]?" on":"")+'" data-o="'+o[0]+'">'+o[1]+'</button>';});
+  var el=document.getElementById("occ");el.innerHTML=h;
+  Array.prototype.forEach.call(el.querySelectorAll(".chip"),function(c){
+    c.addEventListener("click",function(){S.occ=c.getAttribute("data-o");render();});});}
+
+/* ---------- cards ---------- */
+function card(r,rank){
+  var mk=MARKS[key(r)]||"",st=status(r),tags=[];
+  if(st.state==="open")tags.push(["pine",st.mins<45?"closes in "+st.mins+" min":"open now"]);
+  else if(st.state==="closed")tags.push(["","closed · "+st.why]);
+  else tags.push(["tur","hours unlisted"]);
+  if(r.km<1.2)tags.push(["pine","walkable"]);
+  if(r[2]>=4.4&&r[3]<900)tags.push(["sl","hidden gem"]);
+  if(r[3]<200)tags.push(["kum","thin data"]);
+  if(r[3]>6000&&r[2]>=4.3)tags.push(["tur","crowd-tested"]);
+  if(r[4]===1)tags.push(["","cheap"]);
+  var conf=Math.min(100,Math.round(Math.log1p(r[3])/Math.log1p(20000)*100));
+  var rc=r[2]>=4.5?"hi":(r[2]<4?"lo":"");
+  var q=encodeURIComponent(r[0]+" "+r[1]+" Bangalore");
+  return '<article class="card'+(mk?" mk-"+mk:"")+'" data-k="'+esc(key(r))+'">'
+   +'<div class="rank">'+rank+'</div>'
+   +'<div><h3 class="nm">'+esc(r[0])+'</h3>'
+   +'<p class="sub">'+esc(r[1])+' · '+esc(r[7])+' · '+"₹".repeat(r[4])+'</p>'
+   +'<p class="sub" style="color:var(--ink-3)">'+esc(r[11])+'</p>'
+   +'<div class="tags">'+tags.map(function(t){return '<span class="tag '+t[0]+'">'+t[1]+'</span>';}).join("")+'</div></div>'
+   +'<div class="right"><span class="rate '+rc+'">'+r[2].toFixed(1)+'</span>'
+   +'<span class="cnt">'+r[3].toLocaleString()+' reviews</span>'
+   +'<span class="conf" title="Review-count confidence"><span style="width:'+conf+'%"></span></span>'
+   +'<span class="km">'+r.km.toFixed(1)+' km</span><span class="eta">~'+r.eta+' min drive</span></div>'
+   +'<div class="acts">'
+   +'<button class="act been'+(mk==="been"?" on":"")+'" data-m="been">Been here</button>'
+   +'<button class="act want'+(mk==="want"?" on":"")+'" data-m="want">Want to go</button>'
+   +'<button class="act no'+(mk==="no"?" on":"")+'" data-m="no">Never again</button>'
+   +'<a class="act map" href="https://www.google.com/maps/search/?api=1&query='+q+'" target="_blank" rel="noopener">Open in Maps</a>'
+   +'</div></article>';}
+
+function render(){
+  measure();drawBands();drawOcc();drawRadar();
+  var rows=sortRows(visible()),out=document.getElementById("out"),h="";
+  document.getElementById("tCount").textContent=rows.length;
+  document.getElementById("tAvg").textContent=rows.length?
+    "avg "+(rows.reduce(function(t,r){return t+r[2];},0)/rows.length).toFixed(1)+"★":"nothing matching";
+  if(!rows.length){
+    var pool=DATA.filter(function(r){
+      if(r[2]<S.minR||r[3]<S.minC)return false;
+      if(S.occ!=="all"&&r[8].indexOf(S.occ)<0)return false;
+      if(S.openNow&&status(r).state!=="open")return false;
+      return true;}).sort(function(a,b){return a.km-b.km;});
+    var near=pool[0];
+    out.innerHTML='<div class="empty"><b>Nothing inside '+BANDS[S.band][0]+' km</b>'
+      +(near?'The closest match is <strong>'+esc(near[0])+'</strong> in '+esc(near[1])+', '+near.km.toFixed(1)+' km out. '
+        +'<button class="mini" id="stretch">Stretch the radius to reach it</button>'
+        :'Try dropping the rating floor or switching off "open now".')+'</div>';
+    if(near){var b=document.getElementById("stretch");if(b)b.addEventListener("click",function(){
+      for(var i=0;i<BANDS.length;i++){if(BANDS[i][0]>=near.km){S.band=i;break;}}render();});}
+  }else if(S.cluster){
+    var g={};rows.forEach(function(r){(g[r[1]]=g[r[1]]||[]).push(r);});
+    Object.keys(g).sort(function(a,b){return g[a][0].km-g[b][0].km;}).forEach(function(a){
+      var avg=(g[a].reduce(function(t,r){return t+r[2];},0)/g[a].length).toFixed(1);
+      h+='<h2 class="groupname">'+esc(a)+' — '+g[a].length+' place'+(g[a].length>1?"s":"")+', avg '+avg+'★, '+g[a][0].km.toFixed(1)+' km</h2>';
+      g[a].forEach(function(r,i){h+=card(r,i+1);});});
+    out.innerHTML=h;
+  }else{
+    rows.forEach(function(r,i){h+=card(r,i+1);});out.innerHTML=h;}
+  Array.prototype.forEach.call(out.querySelectorAll(".card"),function(c){
+    Array.prototype.forEach.call(c.querySelectorAll(".act[data-m]"),function(b){
+      b.addEventListener("click",function(){
+        var k=c.getAttribute("data-k"),m=b.getAttribute("data-m");
+        MARKS[k]=MARKS[k]===m?"":m;if(!MARKS[k])delete MARKS[k];saveMarks();render();});});});
+  writeHash();}
+
+/* ---------- location ---------- */
+function setOrigin(name,lat,lng,live){
+  S.origin={name:name,lat:lat,lng:lng};
+  document.getElementById("oText").textContent="measuring from "+name;
+  document.getElementById("oDot").className="dot"+(live?" live":"");render();}
+document.getElementById("geo").addEventListener("click",function(){
+  var t=document.getElementById("oText");
+  if(!navigator.geolocation){t.textContent="this browser has no location support — pick an area instead";return;}
+  t.textContent="finding you…";
+  navigator.geolocation.getCurrentPosition(function(p){
+    setOrigin("your location",p.coords.latitude,p.coords.longitude,true);},
+    function(err){
+      t.textContent=err.code===1?"location blocked — allow it in the address bar, or pick an area"
+        :"couldn't get a fix — pick an area from the list instead";},
+    {enableHighAccuracy:true,timeout:10000,maximumAge:60000});});
+document.getElementById("reset").addEventListener("click",function(){setOrigin(HOME.name,HOME.lat,HOME.lng,false);});
+(function(){var sel=document.getElementById("manual"),h='<option value="">Or pick an area…</option>';
+  SPOTS.forEach(function(s,i){h+='<option value="'+i+'">'+s[0]+'</option>';});sel.innerHTML=h;
+  sel.addEventListener("change",function(){var i=sel.value;if(i==="")return;
+    setOrigin(SPOTS[i][0],SPOTS[i][1],SPOTS[i][2],false);});})();
+
+/* ---------- controls ---------- */
+function bindT(id,k){var el=document.getElementById(id);el.checked=S[k];
+  el.addEventListener("change",function(){S[k]=el.checked;render();});}
+bindT("openNow","openNow");bindT("rush","rush");bindT("hideNo","hideNo");bindT("cluster","cluster");
+document.getElementById("q").addEventListener("input",function(e){S.q=e.target.value;render();});
+document.getElementById("sortBy").addEventListener("change",function(e){S.sort=e.target.value;render();});
+document.getElementById("minR").addEventListener("change",function(e){S.minR=+e.target.value;render();});
+document.getElementById("minC").addEventListener("change",function(e){S.minC=+e.target.value;render();});
+document.getElementById("lucky").addEventListener("click",function(){
+  var rows=visible();var p=document.getElementById("peek");
+  if(!rows.length){p.textContent="Nothing to pick from — widen the filters.";return;}
+  var r=rows[Math.floor(Math.random()*rows.length)],st=status(r);
+  p.textContent="Tonight: "+r[0]+", "+r[1]+" · "+r[2].toFixed(1)+"★ · "+r.km.toFixed(1)+" km · "
+    +(st.state==="open"?"open now":st.state==="closed"?"closed ("+st.why+")":"hours unlisted");});
+document.getElementById("wipe").addEventListener("click",function(){
+  MARKS={};saveMarks();render();document.getElementById("peek").textContent="Marks cleared.";});
+document.getElementById("share").addEventListener("click",function(){
+  var url=location.origin+location.pathname+hashOf();
+  var done=function(){document.getElementById("peek").textContent="Link copied — send it to whoever's deciding.";};
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(url).then(done,function(){prompt("Copy this link",url);});}
+  else prompt("Copy this link",url);});
+
+/* ---------- share state in the URL ---------- */
+function hashOf(){
+  var p=["b="+S.band,"o="+S.occ,"s="+S.sort,"r="+S.minR,"c="+S.minC,
+    "n="+(S.openNow?1:0),"g="+(S.cluster?1:0),"h="+(S.rush?1:0),
+    "la="+S.origin.lat.toFixed(4),"lo="+S.origin.lng.toFixed(4),"nm="+encodeURIComponent(S.origin.name)];
+  return "#"+p.join("&");}
+var writing=false;
+function writeHash(){if(writing)return;writing=true;history.replaceState(null,"",hashOf());writing=false;}
+function readHash(){
+  if(!location.hash||location.hash.length<3)return;
+  var p={};location.hash.slice(1).split("&").forEach(function(kv){var a=kv.split("=");p[a[0]]=decodeURIComponent(a[1]||"");});
+  if(p.b!==undefined)S.band=Math.max(0,Math.min(BANDS.length-1,+p.b));
+  if(p.o)S.occ=p.o;if(p.s)S.sort=p.s;
+  if(p.r)S.minR=+p.r;if(p.c)S.minC=+p.c;
+  S.openNow=p.n==="1";S.cluster=p.g==="1";S.rush=p.h==="1";
+  if(p.la&&p.lo)S.origin={name:p.nm||"a shared spot",lat:+p.la,lng:+p.lo};
+  document.getElementById("sortBy").value=S.sort;
+  document.getElementById("minR").value=String(S.minR);
+  document.getElementById("minC").value=String(S.minC);
+  document.getElementById("oText").textContent="measuring from "+S.origin.name;}
+readHash();
+document.getElementById("openNow").checked=S.openNow;
+document.getElementById("rush").checked=S.rush;
+document.getElementById("cluster").checked=S.cluster;
+render();
+setInterval(function(){if(S.openNow||S.sort==="closing")render();},60000);
+</script>
+</body>
+</html>
