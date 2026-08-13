@@ -118,6 +118,12 @@ input[type=search]{min-width:170px}
 .empty b{display:block;font-family:var(--dsp);font-size:18px;color:var(--ink);margin-bottom:5px}
 
 footer{border-top:1px solid var(--line);margin-top:44px;padding:22px 0 60px;font-size:13px;color:var(--ink-3)}
+.credit{border-bottom:1px solid var(--line);padding-bottom:20px;margin-bottom:20px}
+.credit-k{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+.credit-n{font-family:var(--dsp);font-weight:600;font-size:clamp(22px,3.6vw,30px);letter-spacing:-.015em;
+  line-height:1.15;color:var(--ink);margin:5px 0 4px}
+.credit-n span{color:var(--pine);font-weight:400;padding:0 2px}
+.credit-s{font-family:var(--mono);font-size:11.5px;color:var(--ink-3)}
 footer p{margin:0 0 6px;max-width:70ch}
 .mini{border:none;background:none;color:var(--pine);text-decoration:underline;padding:0;font-size:13px}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
@@ -143,10 +149,9 @@ footer p{margin:0 0 6px;max-width:70ch}
 
 <div class="locbar">
   <div class="wrap locrow">
-    <button class="btn solid" id="geo">Find places near me</button>
-    <button class="btn ghost" id="reset">Reset to Mathikere</button>
+    <button class="btn solid" id="geo">Use my location</button>
     <select id="manual" aria-label="Pick a starting point"></select>
-    <span class="origin"><span class="dot" id="oDot"></span><span id="oText">measuring from Mathikere</span></span>
+    <span class="origin"><span class="dot" id="oDot"></span><span id="oText">locating you…</span></span>
   </div>
 </div>
 
@@ -208,6 +213,11 @@ footer p{margin:0 0 6px;max-width:70ch}
 </main>
 
 <footer class="wrap">
+  <div class="credit">
+    <span class="credit-k">Put together by</span>
+    <p class="credit-n">Rohan T <span>&amp;</span> Ronak Kanthaliya</p>
+    <span class="credit-s">Bengaluru · 2026</span>
+  </div>
   <p id="fnote">Ratings and hours are from Google, captured August 2026 — check before you drive. Distances are straight-line multiplied by 1.35, so treat them as a rough road estimate. Split-hours places (many close between lunch and dinner) are handled, but public holidays are not.</p>
   <p>Your been-there marks are saved in this browser only. <button class="mini" id="wipe">Clear my marks</button></p>
 </footer>
@@ -459,25 +469,51 @@ function render(){
   writeHash();}
 
 /* ---------- location ---------- */
-function setOrigin(name,lat,lng,live){
+var BLR=[12.9716,77.5946];
+function setOrigin(name,lat,lng,live,fromSelect){
   S.origin={name:name,lat:lat,lng:lng};
-  document.getElementById("oText").textContent="measuring from "+name;
-  document.getElementById("oDot").className="dot"+(live?" live":"");render();}
-document.getElementById("geo").addEventListener("click",function(){
-  var t=document.getElementById("oText");
-  if(!navigator.geolocation){t.textContent="this browser has no location support — pick an area instead";return;}
-  t.textContent="finding you…";
-  navigator.geolocation.getCurrentPosition(function(p){
-    setOrigin("your location",p.coords.latitude,p.coords.longitude,true);},
+  document.getElementById("oDot").className="dot"+(live?" live":"");
+  if(!fromSelect)document.getElementById("manual").value="";
+  render();}
+function say(t){document.getElementById("oText").textContent=t;}
+function acceptFix(p,cached){
+  var lat=p.coords.latitude,lng=p.coords.longitude,acc=p.coords.accuracy;
+  setOrigin("your location",lat,lng,true);
+  var away=haversine(lat,lng,BLR[0],BLR[1]);
+  if(away>70)say("you're ~"+Math.round(away)+" km from Bengaluru \u2014 everything will look far");
+  else say((cached?"last known spot":"you're here")+(acc?" \u00b7 \u00b1"+Math.round(acc)+" m":""));
+  try{localStorage.setItem("vegblr.pos",JSON.stringify({lat:lat,lng:lng,acc:acc,t:Date.now()}));}catch(e){}}
+function fallbackHome(msg){say(msg);if(S.origin.name!=="your location")setOrigin(HOME.name,HOME.lat,HOME.lng,false);}
+function locate(fresh){
+  var btn=document.getElementById("geo");
+  if(!navigator.geolocation){fallbackHome("this browser can't share location \u2014 pick an area instead");return;}
+  say(fresh?"getting a fresh fix\u2026":"locating you\u2026");
+  btn.disabled=true;
+  navigator.geolocation.getCurrentPosition(
+    function(p){btn.disabled=false;acceptFix(p,false);},
     function(err){
-      t.textContent=err.code===1?"location blocked — allow it in the address bar, or pick an area"
-        :"couldn't get a fix — pick an area from the list instead";},
-    {enableHighAccuracy:true,timeout:10000,maximumAge:60000});});
-document.getElementById("reset").addEventListener("click",function(){setOrigin(HOME.name,HOME.lat,HOME.lng,false);});
-(function(){var sel=document.getElementById("manual"),h='<option value="">Or pick an area…</option>';
-  SPOTS.forEach(function(s,i){h+='<option value="'+i+'">'+s[0]+'</option>';});sel.innerHTML=h;
+      btn.disabled=false;
+      if(err.code===1)fallbackHome("location denied \u2014 using Mathikere, or pick an area");
+      else if(err.code===3)fallbackHome("location timed out \u2014 using Mathikere, tap to retry");
+      else fallbackHome("couldn't get a fix \u2014 using Mathikere, or pick an area");},
+    {enableHighAccuracy:true,timeout:12000,maximumAge:fresh?0:120000});}
+document.getElementById("geo").addEventListener("click",function(){locate(true);});
+(function(){var sel=document.getElementById("manual"),h='<option value="">Or pick an area\u2026</option>';
+  SPOTS.forEach(function(s,i){h+='<option value="'+i+'">'+s[0]+(i===0?" (default)":"")+'</option>';});
+  sel.innerHTML=h;
   sel.addEventListener("change",function(){var i=sel.value;if(i==="")return;
-    setOrigin(SPOTS[i][0],SPOTS[i][1],SPOTS[i][2],false);});})();
+    setOrigin(SPOTS[i][0],SPOTS[i][1],SPOTS[i][2],false,true);say("measuring from "+SPOTS[i][0]);});})();
+function bootLocation(){
+  if((function(){try{return location.hash.indexOf("la=")>-1;}catch(e){return false;}})()){say("measuring from "+S.origin.name);return;}
+  var c=null;try{c=JSON.parse(localStorage.getItem("vegblr.pos")||"null");}catch(e){}
+  if(c&&Date.now()-c.t<86400000)acceptFix({coords:{latitude:c.lat,longitude:c.lng,accuracy:c.acc}},true);
+  else{setOrigin(HOME.name,HOME.lat,HOME.lng,false);say("locating you\u2026");}
+  if(!navigator.geolocation){say("this browser can't share location \u2014 pick an area");return;}
+  if(navigator.permissions&&navigator.permissions.query){
+    navigator.permissions.query({name:"geolocation"}).then(function(st){
+      if(st.state==="denied"){fallbackHome("location is blocked for this site \u2014 using Mathikere");return;}
+      locate(false);}).catch(function(){locate(false);});
+  }else locate(false);}
 
 /* ---------- controls ---------- */
 function bindT(id,k){var el=document.getElementById(id);el.checked=S[k];
@@ -496,7 +532,9 @@ document.getElementById("lucky").addEventListener("click",function(){
 document.getElementById("wipe").addEventListener("click",function(){
   MARKS={};saveMarks();render();document.getElementById("peek").textContent="Marks cleared.";});
 document.getElementById("share").addEventListener("click",function(){
-  var url=location.origin+location.pathname+hashOf();
+  var base="";
+  try{base=location.origin+location.pathname;}catch(e){}
+  var url=base+hashOf();
   var done=function(){document.getElementById("peek").textContent="Link copied — send it to whoever's deciding.";};
   if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(url).then(done,function(){prompt("Copy this link",url);});}
   else prompt("Copy this link",url);});
@@ -507,11 +545,16 @@ function hashOf(){
     "n="+(S.openNow?1:0),"g="+(S.cluster?1:0),"h="+(S.rush?1:0),
     "la="+S.origin.lat.toFixed(4),"lo="+S.origin.lng.toFixed(4),"nm="+encodeURIComponent(S.origin.name)];
   return "#"+p.join("&");}
-var writing=false;
-function writeHash(){if(writing)return;writing=true;history.replaceState(null,"",hashOf());writing=false;}
+var hashOk=true;
+function writeHash(){
+  if(!hashOk)return;
+  try{history.replaceState(null,"",hashOf());}
+  catch(e){hashOk=false;}}
 function readHash(){
-  if(!location.hash||location.hash.length<3)return;
-  var p={};location.hash.slice(1).split("&").forEach(function(kv){var a=kv.split("=");p[a[0]]=decodeURIComponent(a[1]||"");});
+  var hash="";
+  try{hash=location.hash||"";}catch(e){return;}
+  if(hash.length<3)return;
+  var p={};hash.slice(1).split("&").forEach(function(kv){var a=kv.split("=");p[a[0]]=decodeURIComponent(a[1]||"");});
   if(p.b!==undefined)S.band=Math.max(0,Math.min(BANDS.length-1,+p.b));
   if(p.o)S.occ=p.o;if(p.s)S.sort=p.s;
   if(p.r)S.minR=+p.r;if(p.c)S.minC=+p.c;
@@ -526,6 +569,7 @@ document.getElementById("openNow").checked=S.openNow;
 document.getElementById("rush").checked=S.rush;
 document.getElementById("cluster").checked=S.cluster;
 render();
+bootLocation();
 setInterval(function(){if(S.openNow||S.sort==="closing")render();},60000);
 </script>
 </body>
