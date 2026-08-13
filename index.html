@@ -50,6 +50,21 @@ header.top{border-bottom:1px solid var(--line);background:var(--paper)}
 .dot{width:8px;height:8px;border-radius:50%;background:var(--turmeric);flex:none}
 .dot.live{background:var(--pine)}
 .origin{font-family:var(--mono);font-size:12.5px;color:var(--ink-2);display:flex;align-items:center;gap:8px}
+.ac{position:relative}
+.ac input{width:200px;padding-right:28px}
+.acClear{position:absolute;right:6px;top:50%;transform:translateY(-50%);border:none;background:none;
+  color:var(--ink-3);font-size:18px;line-height:1;padding:2px 5px;border-radius:5px}
+.acClear:hover{color:var(--ink);background:var(--paper)}
+.acList{position:absolute;z-index:60;top:calc(100% + 5px);left:0;width:248px;max-height:264px;overflow-y:auto;
+  margin:0;padding:5px;list-style:none;background:var(--panel);border:1px solid var(--line-2);
+  border-radius:var(--r);box-shadow:0 10px 26px rgba(21,24,27,.11)}
+.acList li{padding:8px 10px;border-radius:6px;font-size:14px;cursor:pointer;display:flex;
+  justify-content:space-between;align-items:baseline;gap:10px}
+.acList li:hover,.acList li[aria-selected=true]{background:var(--pine-soft);color:var(--pine)}
+.acList li b{font-weight:500}
+.acList li em{font-style:normal;font-family:var(--mono);font-size:11px;color:var(--ink-3)}
+.acList li[aria-selected=true] em{color:var(--pine)}
+.acNone{padding:10px;font-size:13.5px;color:var(--ink-3)}
 select,input[type=search]{font-family:var(--bdy);font-size:14px;padding:9px 11px;border:1px solid var(--line-2);border-radius:var(--r);background:var(--panel);color:var(--ink)}
 input[type=search]{min-width:170px}
 
@@ -150,7 +165,12 @@ footer p{margin:0 0 6px;max-width:70ch}
 <div class="locbar">
   <div class="wrap locrow">
     <button class="btn solid" id="geo">Use my location</button>
-    <select id="manual" aria-label="Pick a starting point"></select>
+    <div class="ac">
+      <input type="text" id="acIn" role="combobox" aria-expanded="false" aria-controls="acList"
+             aria-autocomplete="list" autocomplete="off" placeholder="Search an area…">
+      <button class="acClear" id="acClear" type="button" aria-label="Clear area search" hidden>&times;</button>
+      <ul class="acList" id="acList" role="listbox" hidden></ul>
+    </div>
     <span class="origin"><span class="dot" id="oDot"></span><span id="oText">locating you…</span></span>
   </div>
 </div>
@@ -302,7 +322,16 @@ var SPOTS=[
 ["Hebbal",13.0358,77.5970],["Indiranagar",12.9784,77.6408],["Koramangala",12.9352,77.6245],
 ["Jayanagar",12.9308,77.5838],["JP Nagar",12.9100,77.5850],["Whitefield",12.9698,77.7500],
 ["Electronic City",12.8452,77.6602],["MG Road",12.9747,77.6094],["RR Nagar",12.9200,77.5150],
-["Basaveshwaranagar",12.9925,77.5391],["Kalyan Nagar",13.0240,77.6420],["Banashankari",12.9250,77.5460]
+["Basaveshwaranagar",12.9925,77.5391],["Kalyan Nagar",13.0240,77.6420],["Banashankari",12.9250,77.5460],
+["Yeshwanthpur",13.0230,77.5540],["Peenya",13.0290,77.5170],["Nagarbhavi",12.9600,77.5100],
+["Vijayanagar",12.9720,77.5330],["Kengeri",12.9070,77.4830],["Uttarahalli",12.9070,77.5460],
+["Kanakapura Road",12.8890,77.5580],["Bannerghatta Road",12.8830,77.5990],["BTM Layout",12.9166,77.6101],
+["HSR Layout",12.9116,77.6474],["Bellandur",12.9260,77.6760],["Marathahalli",12.9560,77.7010],
+["Sarjapur Road",12.9010,77.6870],["CV Raman Nagar",12.9860,77.6640],["Domlur",12.9610,77.6380],
+["Ulsoor",12.9820,77.6200],["Frazer Town",13.0000,77.6150],["Banaswadi",13.0140,77.6510],
+["Ramamurthy Nagar",13.0130,77.6780],["KR Puram",13.0080,77.7010],["Hennur",13.0350,77.6420],
+["Thanisandra",13.0570,77.6300],["Jakkur",13.0770,77.6010],["Devanahalli",13.2490,77.7130],
+["Nelamangala",13.0990,77.3940],["Cubbon Park",12.9760,77.5930]
 ];
 
 /* ---------- state ---------- */
@@ -470,45 +499,100 @@ function render(){
 
 /* ---------- location ---------- */
 var BLR=[12.9716,77.5946];
-function setOrigin(name,lat,lng,live,fromSelect){
+function setOrigin(name,lat,lng,live){
   S.origin={name:name,lat:lat,lng:lng};
   document.getElementById("oDot").className="dot"+(live?" live":"");
-  if(!fromSelect)document.getElementById("manual").value="";
   render();}
 function say(t){document.getElementById("oText").textContent=t;}
+function nearestSpot(lat,lng){
+  var best=null,bd=1e9;
+  SPOTS.forEach(function(sp){var d=haversine(lat,lng,sp[1],sp[2]);if(d<bd){bd=d;best=sp;}});
+  return{name:best[0],km:bd};}
 function acceptFix(p,cached){
-  var lat=p.coords.latitude,lng=p.coords.longitude,acc=p.coords.accuracy;
+  var lat=p.coords.latitude,lng=p.coords.longitude,acc=p.coords.accuracy||0;
+  var away=haversine(lat,lng,BLR[0],BLR[1]),n=nearestSpot(lat,lng);
   setOrigin("your location",lat,lng,true);
-  var away=haversine(lat,lng,BLR[0],BLR[1]);
-  if(away>70)say("you're ~"+Math.round(away)+" km from Bengaluru \u2014 everything will look far");
-  else say((cached?"last known spot":"you're here")+(acc?" \u00b7 \u00b1"+Math.round(acc)+" m":""));
-  try{localStorage.setItem("vegblr.pos",JSON.stringify({lat:lat,lng:lng,acc:acc,t:Date.now()}));}catch(e){}}
+  if(away>70){say("you're ~"+Math.round(away)+" km from Bengaluru \u2014 everything will look far");return;}
+  var where=n.km<2.5?"you're in "+n.name:(n.km<6?"you're near "+n.name:"you're here");
+  say(where+(cached?" (last known)":"")+(acc>500?" \u00b7 rough fix":""));}
 function fallbackHome(msg){say(msg);if(S.origin.name!=="your location")setOrigin(HOME.name,HOME.lat,HOME.lng,false);}
 function locate(fresh){
   var btn=document.getElementById("geo");
-  if(!navigator.geolocation){fallbackHome("this browser can't share location \u2014 pick an area instead");return;}
+  if(!navigator.geolocation){fallbackHome("this browser can't share location \u2014 search an area instead");return;}
   say(fresh?"getting a fresh fix\u2026":"locating you\u2026");
   btn.disabled=true;
   navigator.geolocation.getCurrentPosition(
-    function(p){btn.disabled=false;acceptFix(p,false);},
+    function(p){btn.disabled=false;
+      try{localStorage.setItem("vegblr.pos",JSON.stringify({lat:p.coords.latitude,lng:p.coords.longitude,acc:p.coords.accuracy,t:Date.now()}));}catch(e){}
+      acceptFix(p,false);},
     function(err){
       btn.disabled=false;
-      if(err.code===1)fallbackHome("location denied \u2014 using Mathikere, or pick an area");
+      if(err.code===1)fallbackHome("location denied \u2014 using Mathikere, or search an area");
       else if(err.code===3)fallbackHome("location timed out \u2014 using Mathikere, tap to retry");
-      else fallbackHome("couldn't get a fix \u2014 using Mathikere, or pick an area");},
+      else fallbackHome("couldn't get a fix \u2014 using Mathikere, or search an area");},
     {enableHighAccuracy:true,timeout:12000,maximumAge:fresh?0:120000});}
 document.getElementById("geo").addEventListener("click",function(){locate(true);});
-(function(){var sel=document.getElementById("manual"),h='<option value="">Or pick an area\u2026</option>';
-  SPOTS.forEach(function(s,i){h+='<option value="'+i+'">'+s[0]+(i===0?" (default)":"")+'</option>';});
-  sel.innerHTML=h;
-  sel.addEventListener("change",function(){var i=sel.value;if(i==="")return;
-    setOrigin(SPOTS[i][0],SPOTS[i][1],SPOTS[i][2],false,true);say("measuring from "+SPOTS[i][0]);});})();
+
+/* ---------- searchable area picker ---------- */
+(function(){
+  var inp=document.getElementById("acIn"),box=document.getElementById("acList"),
+      clr=document.getElementById("acClear"),cur=-1,hits=[];
+  function matches(q){
+    q=q.trim().toLowerCase();
+    var ref=S.origin;
+    var ranked=SPOTS.map(function(sp,i){
+      return{sp:sp,i:i,at:q===""?0:sp[0].toLowerCase().indexOf(q),
+        d:haversine(ref.lat,ref.lng,sp[1],sp[2])};
+    }).filter(function(o){return o.at>-1;});
+    if(q==="")ranked.sort(function(a,b){return a.d-b.d;});
+    else ranked.sort(function(a,b){return a.at-b.at||a.d-b.d;});
+    return ranked.slice(0,50);}
+  function open(q){
+    hits=matches(q);cur=-1;
+    if(!hits.length){box.innerHTML='<li class="acNone" role="presentation">No area by that name</li>';}
+    else{
+      var ref=S.origin;
+      box.innerHTML=hits.map(function(o,k){
+        var d=haversine(ref.lat,ref.lng,o.sp[1],o.sp[2])*1.35;
+        return '<li role="option" id="acOpt'+k+'" aria-selected="false" data-i="'+o.i+'">'
+          +'<b>'+o.sp[0]+'</b><em>'+d.toFixed(1)+' km away</em></li>';}).join("");}
+    box.hidden=false;inp.setAttribute("aria-expanded","true");
+    Array.prototype.forEach.call(box.querySelectorAll("li[data-i]"),function(li){
+      li.addEventListener("mousedown",function(e){e.preventDefault();choose(+li.getAttribute("data-i"));});});}
+  function shut(){box.hidden=true;inp.setAttribute("aria-expanded","false");
+    inp.removeAttribute("aria-activedescendant");cur=-1;}
+  function mark(){
+    var li=box.querySelectorAll("li[data-i]");
+    Array.prototype.forEach.call(li,function(x,k){x.setAttribute("aria-selected",k===cur?"true":"false");});
+    if(cur>-1&&li[cur]){inp.setAttribute("aria-activedescendant","acOpt"+cur);
+      li[cur].scrollIntoView({block:"nearest"});}}
+  function choose(i){
+    var sp=SPOTS[i];
+    inp.value=sp[0];clr.hidden=false;shut();
+    setOrigin(sp[0],sp[1],sp[2],false);
+    say("measuring from "+sp[0]);
+    inp.blur();}
+  inp.addEventListener("focus",function(){open(inp.value);});
+  inp.addEventListener("input",function(){clr.hidden=!inp.value;open(inp.value);});
+  inp.addEventListener("keydown",function(e){
+    if(box.hidden&&(e.key==="ArrowDown"||e.key==="Enter")){open(inp.value);return;}
+    if(e.key==="ArrowDown"){e.preventDefault();cur=Math.min(cur+1,hits.length-1);mark();}
+    else if(e.key==="ArrowUp"){e.preventDefault();cur=Math.max(cur-1,0);mark();}
+    else if(e.key==="Enter"){e.preventDefault();
+      if(cur>-1)choose(hits[cur].i);else if(hits.length===1)choose(hits[0].i);}
+    else if(e.key==="Escape"){shut();inp.blur();}});
+  clr.addEventListener("click",function(){inp.value="";clr.hidden=true;shut();inp.focus();});
+  document.addEventListener("click",function(e){
+    if(!e.target.closest||!e.target.closest(".ac"))shut();});
+})();
+
 function bootLocation(){
-  if((function(){try{return location.hash.indexOf("la=")>-1;}catch(e){return false;}})()){say("measuring from "+S.origin.name);return;}
+  if((function(){try{return location.hash.indexOf("la=")>-1;}catch(e){return false;}})()){
+    say("measuring from "+S.origin.name);return;}
   var c=null;try{c=JSON.parse(localStorage.getItem("vegblr.pos")||"null");}catch(e){}
   if(c&&Date.now()-c.t<86400000)acceptFix({coords:{latitude:c.lat,longitude:c.lng,accuracy:c.acc}},true);
   else{setOrigin(HOME.name,HOME.lat,HOME.lng,false);say("locating you\u2026");}
-  if(!navigator.geolocation){say("this browser can't share location \u2014 pick an area");return;}
+  if(!navigator.geolocation){say("this browser can't share location \u2014 search an area");return;}
   if(navigator.permissions&&navigator.permissions.query){
     navigator.permissions.query({name:"geolocation"}).then(function(st){
       if(st.state==="denied"){fallbackHome("location is blocked for this site \u2014 using Mathikere");return;}
